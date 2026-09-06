@@ -4,7 +4,7 @@
 
 const { calculateMultiply } = require("./multiply.js")//when we require this moduel all code of this module copy into the IIFE function and then execute thats why we cannot directly access the variable and function of another module
     //IIFE
-    (function () {
+    (function (module, require) {
         //all code of the module runs inside here
         function calculateMultiply(a, b) {
             const result = a * b;
@@ -13,4 +13,4 @@ const { calculateMultiply } = require("./multiply.js")//when we require this mod
         }
 
         module.exports = { calculateMultiply }
-    }())
+    })()//passed module and require as a prameter to the IIFE functio so we can access the module.export and require
