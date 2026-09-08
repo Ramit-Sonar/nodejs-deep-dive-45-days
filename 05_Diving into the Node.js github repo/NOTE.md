@@ -1,62 +1,123 @@
 # 🎬 Episode 05 — Diving Into Node.js
 
-> **Today’s focus:** Understanding how Node.js CommonJS modules work behind the scenes.
+> **Focus:** Understanding what happens behind the scenes when Node.js uses `require()` and how modules remain private.
 
-## 🔐 1. How Does Module Privacy Work?
+---
+
+## 🔐 1. Module Privacy
 
 In the previous episode, I learned how modules communicate:
 
 ```js
-module.exports
+module.exports = { calculateMultiply };
 ```
 
-is used to **export** something from a module, and:
+and:
 
 ```js
-require("./path")
+const { calculateMultiply } = require("./multiply.js");
 ```
 
-is used to **import/use** it in another module.
+But in this episode, I wanted to understand:
 
-But an important question remained:
+> **How are variables and functions of one module kept private from another module?**
 
-> **Where do `module` and `require()` come from?**
+The answer is related to the **function wrapper** used by Node.js for CommonJS modules.
 
 ---
 
 ## ⚙️ 2. CommonJS Module Wrapper
 
-When Node.js runs a CommonJS module, it **wraps the module code inside a function**.
+When Node.js loads a CommonJS module, it wraps the module code inside a function.
+
+Conceptually, it looks like:
+
+```js
+(function (exports, require, module, __filename, __dirname) {
+
+    // Module code runs here
+
+    function calculateMultiply(a, b) {
+        const result = a * b;
+        console.log(result);
+    }
+
+    module.exports = { calculateMultiply };
+
+})();
+```
+
+This wrapper gives the module its **own function scope**.
+
+That's why code inside one module is not directly accessible from another module.
+
+---
+
+## 🧩 3. IIFE
+
+The wrapper is conceptually similar to an **IIFE**.
+
+**IIFE = Immediately Invoked Function Expression**
+
+Example:
+
+```js
+(function () {
+
+    const secret = "private";
+
+    console.log(secret);
+
+})();
+```
+
+The function is created and immediately executed.
+
+The variable `secret` exists inside that function's scope and cannot be directly accessed from outside.
+
+This helped me understand the basic idea of **module privacy and encapsulation**.
+
+---
+
+## 📦 4. Why Can We Use `require` and `module`?
+
+We never create these ourselves:
+
+```js
+require()
+module
+__filename
+__dirname
+```
+
+Node.js provides them through the CommonJS function wrapper.
 
 Conceptually:
 
 ```js
 (function (exports, require, module, __filename, __dirname) {
 
-    // Module code
+    // Our module code
 
-});
+})();
 ```
 
-Node.js passes these values as **parameters** to the wrapper function.
-
-That's why we can directly use:
+So inside a CommonJS module, we can write:
 
 ```js
-require("./multiply.js");
+require("./path");
 
 module.exports = {};
+
+console.log(__filename);
+console.log(__dirname);
 ```
 
-even though we never created `require` or `module` ourselves.
-
-### 🧠 Key Idea
-
-> **`require`, `module`, `exports`, `__filename`, and `__dirname` are available in CommonJS because Node.js provides them to the module through its function wrapper.**
+because Node.js provides these values to the module.
 
 ---
 
-# 🔍 3. What Happens Behind `require("./path")`?
+## 🔍 5. What Happens Behind `require()`?
 
 When we write:
 
@@ -64,199 +125,107 @@ When we write:
 const { calculateMultiply } = require("./multiply.js");
 ```
 
-Node.js goes through several important steps.
+Node.js goes through an internal process.
 
 ```text
 require("./multiply.js")
           ↓
-1. Resolving
+   1. Resolve module
           ↓
-2. Loading
+   2. Load module
           ↓
-3. Wrapping
+   3. Wrap module code
           ↓
-4. Evaluation
+   4. Evaluate / execute code
           ↓
-5. Caching
+   5. Cache the module
+          ↓
+   Return module.exports
 ```
 
----
+### 1. Resolving
 
-## 1️⃣ Resolving the Module
+Node.js determines **which module/file** the path refers to.
 
-Node.js first determines **which module/file** we are asking for.
+### 2. Loading
+
+Node.js loads the module's code.
+
+### 3. Wrapping
+
+The CommonJS module code is placed inside the function wrapper.
+
+### 4. Evaluation
+
+The wrapped code is executed.
 
 For example:
-
-```js
-require("./multiply.js");
-```
-
-Node.js resolves the path and finds the required module.
-
----
-
-## 2️⃣ Loading the Module
-
-After resolving the module, Node.js loads its content into memory.
-
-For example:
-
-```js
-// multiply.js
-
-function calculateMultiply(a, b) {
-    return a * b;
-}
-
-module.exports = { calculateMultiply };
-```
-
----
-
-## 3️⃣ Wrapping the Module
-
-Node.js wraps the loaded CommonJS code inside its function wrapper:
-
-```js
-(function (exports, require, module, __filename, __dirname) {
-
-    function calculateMultiply(a, b) {
-        return a * b;
-    }
-
-    module.exports = { calculateMultiply };
-
-});
-```
-
-This gives the module its own scope and also provides things like `require` and `module`.
-
----
-
-## 4️⃣ Evaluation
-
-Node.js executes the wrapped module code.
-
-When:
 
 ```js
 module.exports = { calculateMultiply };
 ```
 
-runs, that exported value becomes the result that `require()` provides to the calling module.
+defines what the module provides.
 
-So:
+### 5. Caching
 
-```js
-const result = require("./multiply.js");
-```
+Node.js caches the loaded module.
 
-conceptually gives:
-
-```js
-result = {
-    calculateMultiply
-};
-```
+If another file requires the same module again, Node.js can use the **cached module** instead of executing that module again from scratch.
 
 ---
 
-# 🗃️ 5. Caching — A Very Important Part
+## 🧪 6. What I Explored in the Node.js Source Code
 
-After Node.js loads and evaluates a CommonJS module, it **caches the module**.
+For this episode, I went beyond simply using:
 
-This becomes very important when multiple files require the same module.
-
-Suppose:
-
-```text
-app.js
- ├── require("./user.js")
- └── require("./payment.js")
-
-payment.js
- └── require("./user.js")
+```js
+require()
 ```
 
-`user.js` is required more than once.
+I explored the **Node.js GitHub repository** to understand how these things are actually implemented.
 
-Node.js does **not execute `user.js` from the beginning every time**.
+I looked at the Node.js source code to understand concepts such as:
 
-Instead:
+* How `require()` is implemented.
+* How the CommonJS module system works internally.
+* How Node.js wraps module code inside a function.
+* How `module` and `exports` are provided.
+* How modules are loaded and evaluated.
+* How module caching works.
 
-```text
-First require("./user.js")
-          ↓
-Resolve
-          ↓
-Load
-          ↓
-Wrap
-          ↓
-Evaluate
-          ↓
-Cache module
-```
-
-Later:
-
-```text
-Another require("./user.js")
-          ↓
-Check cache
-          ↓
-Module already exists
-          ↓
-Return cached exports
-```
-
-### 🧠 Why Is Caching Important?
-
-Without caching, the same module could be repeatedly loaded and executed whenever different files require it.
-
-Caching allows Node.js to reuse the already-loaded module.
-
-> **A CommonJS module is normally evaluated once per process, then subsequent `require()` calls return the cached module exports.**
+This helped me connect the code I normally write with what Node.js is doing **behind the scenes**.
 
 ---
 
-# 🔄 Complete Mental Model
+## 🧠 My Mental Model
 
 When I write:
 
 ```js
-require("./multiply.js");
+const { calculateMultiply } = require("./multiply.js");
 ```
 
-I should think:
+I can now visualize:
 
 ```text
-        require("./multiply.js")
-                  ↓
-          1. Resolve module
-                  ↓
-           2. Load module
-                  ↓
-        3. Wrap in function
-                  ↓
-          4. Evaluate code
-                  ↓
-      module.exports is produced
-                  ↓
-           5. Cache module
-                  ↓
-        Return cached exports
-        on future requires
+          require("./multiply.js")
+                    ↓
+              Resolve module
+                    ↓
+               Load module
+                    ↓
+          Wrap module in function
+                    ↓
+              Execute code
+                    ↓
+            module.exports
+                    ↓
+                Cache
+                    ↓
+          Return exported value
 ```
 
----
+### ⭐ Main Idea
 
-## ⭐ What I Learned So Far
-
-* Node.js wraps CommonJS module code inside a function.
-* `require` and `module` are available because Node.js passes them to this wrapper.
-* The wrapper gives each module its own scope.
-* `require()` goes through **resolving → loading → wrapping → evaluation → caching**.
-* `module.exports` determines what the module provides to the code that requires it.
-* **Caching is important:** once a CommonJS module has been loaded and evaluated, later `require()` calls normally reuse the cached module instead of executing it again.
+> **CommonJS modules are executed inside a Node.js-provided function wrapper. This gives each module its own scope, while `module.exports` provides a controlled way to expose code to other modules. `require()` loads and returns those exports, with Node.js caching the module for later use.**
