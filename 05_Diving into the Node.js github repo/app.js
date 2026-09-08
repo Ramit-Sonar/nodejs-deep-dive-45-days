@@ -1,16 +1,67 @@
-//when we do require("./path")
-//all the code of the module is weapped inside a function (IIFE)
-//IIFE - Immediately Invoked Function Expression
+```js
+// When we do require("./path"):
+//
+// Node.js loads the module and wraps its code inside a function wrapper.
+//
+// IIFE = Immediately Invoked Function Expression
 
-const { calculateMultiply } = require("./multiply.js")//when we require this moduel all code of this module copy into the IIFE function and then execute thats why we cannot directly access the variable and function of another module
-    //IIFE
-    (function (module, require) {
-        //all code of the module runs inside here
-        function calculateMultiply(a, b) {
-            const result = a * b;
 
-            console.log(result);
-        }
+const { calculateMultiply } = require("./multiply.js");
 
-        module.exports = { calculateMultiply }
-    })()//passed module and require as a prameter to the IIFE functio so we can access the module.export and require
+
+// --------------------------------------------------
+// Behind the scenes:
+// --------------------------------------------------
+
+// Node.js wraps the module code like this:
+
+(function (exports, require, module, __filename, __dirname) {
+
+    // All the code of the module runs inside here
+
+    function calculateMultiply(a, b) {
+        const result = a * b;
+
+        console.log(result);
+    }
+
+    module.exports = { calculateMultiply };
+
+})();
+
+
+// --------------------------------------------------
+// Why can we use module.exports and require?
+// --------------------------------------------------
+
+// Node.js passes these as parameters to the wrapper function:
+//
+// exports
+// require
+// module
+// __filename
+// __dirname
+//
+// That's why we can use:
+//
+// module.exports
+// require("./path")
+// __filename
+// __dirname
+
+
+// --------------------------------------------------
+// Important:
+// --------------------------------------------------
+
+// The code of one module is NOT directly accessible
+// from another module.
+//
+// We use module.exports to export something:
+//
+// module.exports = { calculateMultiply };
+//
+// And require() to import it:
+//
+// const { calculateMultiply } = require("./multiply.js");
+```
