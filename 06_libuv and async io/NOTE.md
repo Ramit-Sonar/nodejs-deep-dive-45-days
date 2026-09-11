@@ -1,17 +1,17 @@
 # 🎬 Episode 06 — libuv & I/O
 
-> **Starting Point:** Node.js has an **event-driven architecture** capable of **asynchronous I/O**.
+> **Starting Point:** Node.js has an **event-driven architecture capable of asynchronous I/O.**
 
 ---
 
 ## 🔄 Synchronous vs Asynchronous
 
-| Synchronous                          | Asynchronous                                        |
-| ------------------------------------ | --------------------------------------------------- |
-| Tasks execute one after another      | Tasks can continue without waiting                  |
-| Next task waits for the current task | Program can continue while a task is being handled  |
-| Blocking                             | Non-blocking                                        |
-| Example: normal JavaScript execution | Example: file reading, database, API request, timer |
+| Synchronous                          | Asynchronous                                                     |
+| ------------------------------------ | ---------------------------------------------------------------- |
+| Executes tasks one after another     | Allows tasks to be handled without blocking JavaScript execution |
+| Next task waits for the current task | JavaScript can continue while async work is being handled        |
+| Blocking                             | Non-blocking                                                     |
+| Example: normal JavaScript execution | Example: file I/O, API requests, timers                          |
 
 ### 🖼️ Synchronous Programming
 
@@ -27,7 +27,7 @@
 
 JavaScript execution is **synchronous by default**.
 
-JavaScript code is executed by the **V8 engine**.
+The **V8 JavaScript engine** executes JavaScript code.
 
 ```js
 console.log("First");
@@ -66,16 +66,16 @@ Executes JavaScript
 
 ---
 
-## ⚡ Why Does JavaScript Need Node.js?
+# ⚡ Why Does JavaScript Need Node.js?
 
-V8 can execute JavaScript, but JavaScript applications also need to perform operations such as:
+V8 executes JavaScript, but JavaScript applications also need to perform operations such as:
 
-* 📁 Reading files
+* 📁 File I/O
 * 🗄️ Database operations
-* 🌐 API/network requests
+* 🌐 API / Network requests
 * ⏱️ Timers
 
-The **V8 engine alone cannot provide all these runtime capabilities**.
+**V8 alone does not provide all of these runtime capabilities.**
 
 This is where **Node.js** comes in.
 
@@ -83,26 +83,29 @@ This is where **Node.js** comes in.
 
 # 🚀 Node.js + V8 + libuv
 
-Node.js provides the runtime environment around V8.
+Node.js provides a runtime environment around V8.
 
-One important component that gives Node.js asynchronous I/O capabilities is **libuv**.
+One important part of this runtime is **libuv**.
 
-### 🧠 What is libuv?
+## 🧠 What is libuv?
 
 **libuv is a cross-platform library used by Node.js for asynchronous I/O and event-loop infrastructure.**
 
 It helps Node.js communicate with the **Operating System (OS)** and handle asynchronous operations.
 
+> 💡 **Mental model:**
+> V8 executes JavaScript → Node.js provides runtime capabilities → libuv helps with asynchronous I/O and event-loop handling.
+
 ---
 
-## 🔗 Node.js, V8, libuv & OS
+# 🔗 Node.js, V8, libuv & OS
 
 ```text
               Node.js
         ┌─────────────────┐
         │                 │
         │   V8 Engine     │
-        │   JS Execution  │
+        │  JS Execution   │
         │                 │
         │       ↕         │
         │      libuv      │
@@ -118,9 +121,9 @@ It helps Node.js communicate with the **Operating System (OS)** and handle async
 
 ---
 
-# 🔄 How Asynchronous Work Happens
+# 🔄 How Asynchronous Tasks Are Handled
 
-When JavaScript encounters an asynchronous operation, Node.js can offload the operation from the JavaScript execution flow.
+When JavaScript encounters an asynchronous operation, Node.js can hand the work off to the runtime's asynchronous mechanisms instead of making the JavaScript execution wait for the operation to finish.
 
 ```text
 JavaScript Code
@@ -146,30 +149,102 @@ Operating System
 
 ---
 
-## 🧠 Mental Model
+# 🧩 Sync + Async Tasks in Node.js
 
-```text
-JavaScript
-    ↓
-   V8
-    ↓
- Node.js
-    ↓
-  libuv
-    ↓
-Operating System
-    ↓
- Result
-    ↓
-JavaScript
+Node.js can handle both **synchronous JavaScript execution** and **asynchronous operations**.
+
+Example:
+
+```js
+var a = 1078698;
+var b = 20986;
+
+https.get("https://api.example.com", (res) => {
+    console.log(res);
+});
+
+setTimeout(() => {
+    console.log("setTimeout");
+}, 5000);
+
+fs.readFile("./gossip.txt", "utf8", (data) => {
+    console.log("File Data", data);
+});
+
+function multiplyFn(x, y) {
+    const result = x * y;
+    return result;
+}
+
+var c = multiplyFn(a, b);
+
+console.log(c);
 ```
 
-> **V8 executes JavaScript. Node.js provides the runtime environment, while libuv is a key part of Node.js's asynchronous I/O infrastructure.**
+### 🧠 What happens conceptually?
+
+```text
+                 Node.js
+                    │
+          ┌─────────┴─────────┐
+          ↓                   ↓
+       V8 Engine            libuv
+          │                   │
+    Sync JavaScript      Async Operations
+          │                   │
+          │              ┌────┴────┐
+          │              ↓         ↓
+          │             OS      Async APIs
+          │              │
+          │              ↓
+          └─────── Result / Callback
+```
+
+### 🖼️ Sync + Async Node.js Flow
+
+![Node.js Sync and Async Flow](./images/nodejs-sync-async-flow.jpeg)
 
 ---
 
-## ❓ Next Question
+# 📌 What I Learned About libuv
 
-If JavaScript execution is synchronous, **how does libuv actually handle asynchronous operations?**
+* **V8** executes JavaScript.
+* JavaScript execution is **synchronous by default**.
+* V8 alone cannot provide things like file I/O, network operations, and timers.
+* **Node.js** provides the runtime environment around V8.
+* **libuv** is a key part of Node.js for asynchronous I/O and event-loop infrastructure.
+* libuv works with the **Operating System** to handle asynchronous operations.
+* Node.js can handle **synchronous JavaScript and asynchronous operations** together.
+* The result of asynchronous work is eventually brought back into the JavaScript execution flow.
 
-➡️ Next: **libuv → I/O → Event Loop → asynchronous execution**
+---
+
+## 🧠 Episode 06 Mental Model
+
+```text
+                 Node.js
+                    │
+          ┌─────────┴─────────┐
+          ↓                   ↓
+         V8                 libuv
+          │                   │
+   Execute JavaScript    Async I/O
+          │                   │
+          │                   ↓
+          │                  OS
+          │                   │
+          │                   ↓
+          └────────────── Result
+                    ↓
+               JavaScript
+```
+
+> **V8 executes JavaScript. Node.js provides the runtime environment, while libuv provides important asynchronous I/O and event-loop infrastructure that allows Node.js to handle non-blocking operations.**
+
+---
+
+# 🎯 Episode 06 Complete
+
+**Learned:** Synchronous vs asynchronous execution → V8 → Node.js runtime → libuv → OS → asynchronous I/O → how Node.js handles sync + async work together.
+
+➡️ **Next Episode:** Dive deeper into **libuv, I/O, and the Event Loop**.
