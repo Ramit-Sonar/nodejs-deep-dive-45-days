@@ -19,3 +19,10 @@ prindA();
 console.log('Last line of the file.');
 
 
+//output
+//a=100
+//Last line of the file
+//Timer Expired
+//setImmediate
+//File Reading CB
+
