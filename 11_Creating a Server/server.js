@@ -46,12 +46,6 @@ const server = http.createServer((req, res) => {
     res.end(JSON.stringify(data));
   }
 
-  // Contact route
-  else if (path === "/contact" && req.method === "GET") {
-    res.writeHead(200);
-    res.end("Contact us at contact@example.com");
-  }
-
   // Page not found
   else {
     res.writeHead(404);
